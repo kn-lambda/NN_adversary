@@ -1,0 +1,10 @@
+__pycache__/
+logs/
+results/
+old/
+nohup.out
+training_report/
+trained_models/
+images/
+download/
+.ipynb_checkpoints/
