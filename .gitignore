@@ -8,3 +8,5 @@ trained_models/
 images/
 download/
 .ipynb_checkpoints/
+*.ipynb
+success_rate/

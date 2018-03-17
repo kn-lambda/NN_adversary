@@ -8,8 +8,8 @@ import os
 import sys
 import numpy as np
 
-from modules.data import *
-from modules.classifer import *
+from modules.data import Data
+from modules.classifer import layer_params, ClassiferNN
 
 
 # use GPU if possible
@@ -249,6 +249,9 @@ if __name__ == '__main__':
     #####################################################################
     ## estimate accuracy of the above models
     #####################################################################
+
+    # not in train mode
+    chainer.config.train = False
     
     # for base-line model
     bea_train = estimete_accuracy(base_model, data.train_tuple)
