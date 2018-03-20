@@ -65,7 +65,7 @@ class CarliniWagnerL2(object):
     
     def __init__(self, model, images, targets, batch_size=200, confidence = 0.0,
                  initial_c = 1e-3, num_c_search = 9, num_iterations = 10000,
-                 learning_late = 1e-2):
+                 learning_late = 1e-2, early_abort = True):
         """
         Args:
             model (ClassiferNN)     : adversarial images are genarated with respect to this model
@@ -77,6 +77,7 @@ class CarliniWagnerL2(object):
             num_c_search(int)       : number of times to search best 'c'
             num_iterations(int)     : number of iterations when gradient decent optimization
             learning_late(int)      : optimizers.Adam's alpha
+            early_abort(bool)       : if improvement stops, braeak iteration
         """
         
         if images.shape[0] != targets.shape[0]:
@@ -92,6 +93,7 @@ class CarliniWagnerL2(object):
         self.num_c_search = num_c_search
         self.num_iterations = num_iterations
         self.learning_late = learning_late
+        self.early_abort = early_abort
         
         # storages for the results
         # predicted labels and probabilities of the generated adversarial images
@@ -291,6 +293,8 @@ class CarliniWagnerL2(object):
         """
         With 'c' fixed, iteratively update the adversarial images.
         """
+        prev_loss = xp.full_like(self.batch_targ, 1e20, dtype=xp.float32)
+  
         for cnt_iter in range(self.num_iterations):
             # update
             self._update_adversary()
@@ -323,6 +327,16 @@ class CarliniWagnerL2(object):
             self.batch_best_probs[is_best] = probs[is_best].copy()
             self.batch_best_c[is_best] = self.c[is_best].copy()
             
+
+            # if imporovement of all adversaries seems to stop, abort this search
+            if self.early_abort and (cnt_iter + 1)%(self.num_iterations//10) == 0:
+                cur_loss = self.total_loss().data
+                should_abort = (cur_loss > prev_loss * 0.9999)
+                if xp.sum(xp.logical_not(should_abort)) == 0:
+                    break
+                prev_loss = cur_loss
+            
+
             # print progress
             #cnt_iter += 1
             #if cnt_iter%(self.num_iterations//10) == 0:

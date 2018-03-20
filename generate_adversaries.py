@@ -96,8 +96,8 @@ if __name__ == '__main__':
  
     # load data
     data = Data(data_name)
-    data_images = data.test_image
-    data_labels = data.test_label
+    data_images = data.test_image[:1000]
+    data_labels = data.test_label[:1000]
 
     # load trained model
     model = ClassiferNN(layer_params[data_name], T=1.0)
@@ -161,7 +161,7 @@ if __name__ == '__main__':
             print("target label   : {0}".format(targ_label))
             print("----------------------------")
 
-            att = CarliniWagnerL2(model, uses_images, uses_targets, num_iterations=2000, confidence=10)
+            att = CarliniWagnerL2(model, uses_images, uses_targets, num_iterations=1000, confidence=0, batch_size=128)
             # run
             n_data, n_success, ratio_success, n_failure, ratio_failure, mean_l2sq = att.run()
 
