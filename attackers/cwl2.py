@@ -8,24 +8,15 @@ from chainer import initializers
 
 from PIL import Image
 import os
+import sys
 import gc
 from datetime import datetime
 
 import numpy as np
 
-# use GPU if possible
-uses_device = 0
 
-if uses_device >= 0:
-    chainer.cuda.get_device_from_id(uses_device).use()
-    chainer.cuda.check_cuda_available()
-    import cupy as xp
-else:
-    xp = np
-
-
-
-# perturbation itself
+#########################################################################
+# perturbation itself ###################################################
 
 class Perturbation(chainer.Link):
     """
@@ -50,8 +41,8 @@ class Perturbation(chainer.Link):
         return self.delta.data
 
 
-
-# generator of adversarial images
+#########################################################################
+# generator of adversarial images #######################################
 
 class CarliniWagnerL2(object):
     """
@@ -65,7 +56,7 @@ class CarliniWagnerL2(object):
     
     def __init__(self, model, images, targets, batch_size=200, confidence = 0.0,
                  initial_c = 1e-3, num_c_search = 9, num_iterations = 10000,
-                 learning_late = 1e-2, early_abort = True):
+                 learning_rate = 1e-2, early_abort = True):
         """
         Args:
             model (ClassiferNN)     : adversarial images are genarated with respect to this model
@@ -76,13 +67,17 @@ class CarliniWagnerL2(object):
             initial_c (float)       : initial value of 'c' whici is the relative importance of two losses
             num_c_search(int)       : number of times to search best 'c'
             num_iterations(int)     : number of iterations when gradient decent optimization
-            learning_late(int)      : optimizers.Adam's alpha
+            learning_rate(int)      : optimizers.Adam's alpha
             early_abort(bool)       : if improvement stops, braeak iteration
         """
         
         if images.shape[0] != targets.shape[0]:
             raise Exception('number of input images and labels does not unmatch')
         
+        # check if the model is in cpu or gpu
+        gen = model.params()
+        self.xp = cuda.get_array_module(next(gen)) # numpy or cupy
+
         self.model = model
         self.org_images = images
         self.targets = targets 
@@ -92,7 +87,7 @@ class CarliniWagnerL2(object):
         self.initial_c = initial_c
         self.num_c_search = num_c_search
         self.num_iterations = num_iterations
-        self.learning_late = learning_late
+        self.learning_rate = learning_rate
         self.early_abort = early_abort
         
         # storages for the results
@@ -112,7 +107,7 @@ class CarliniWagnerL2(object):
         self.targ_iter = iterators.SerialIterator(self.targets, batch_size, shuffle=False, repeat=False)
         
    
-    ## loss functions #####################################################
+    ## loss functions ######################
     
     def total_loss(self):
         """
@@ -123,6 +118,7 @@ class CarliniWagnerL2(object):
     
     
     def _one_hot(self, labels):
+        xp = self.xp
         labels_flat = labels.flatten()
         return xp.eye(self.model.n_classes, dtype=xp.float32)[labels_flat]
         
@@ -133,6 +129,7 @@ class CarliniWagnerL2(object):
     
     
     def confidence_loss(self):
+        xp = self.xp
         out = self.model(self.batch_adv) # output of the model before softmax
         one_hot_targ = self._one_hot(self.batch_targ)
         inf = 1e20
@@ -145,7 +142,7 @@ class CarliniWagnerL2(object):
         return F.clip(out_diff, 0.0, inf)
 
     
-    ## main ############################################################# 
+    ## main ################################
     
     def run(self):
         """
@@ -164,6 +161,7 @@ class CarliniWagnerL2(object):
         =====================================================================================================
         If adversarial image is not generated, label = -1 and image is filled with '0'.
         """
+
         n_data = self.org_images.shape[0]
         n_batch = int(np.ceil(n_data / self.batch_size))
         
@@ -184,6 +182,7 @@ class CarliniWagnerL2(object):
                     loop_cnt_batch, n_batch, loop_cnt_c, self.num_c_search, 
                     datetime.now().strftime("%Y/%m/%d %H:%M:%S"))
                      )
+                sys.stdout.flush()
                 
                 loop_cnt_c += 1
                 gc.collect()
@@ -217,6 +216,7 @@ class CarliniWagnerL2(object):
         """
         Set the next batch data, and initialize several states including 'c'.
         """
+        xp = self.xp
         if self.img_iter.epoch != 0 or self.targ_iter.epoch != 0:
             return
         
@@ -257,14 +257,15 @@ class CarliniWagnerL2(object):
         Before checking this 'c' can generate adversarial images, 
         reset previous adversarial images and storages. 
         """
+        xp = self.xp
         # reset perturbation
         self.perturb = Perturbation(self.batch_org.shape)
-        if uses_device >= 0:
+        if xp is not np:
             self.perturb = self.perturb.to_gpu() 
         # reset adversarial image
         self.batch_adv = F.tanh(self.batch_org_arctanh + self.perturb()) / 2.0
         # reset optimizer
-        self.optimizer = optimizers.Adam(alpha=self.learning_late) # use Adam
+        self.optimizer = optimizers.Adam(alpha=self.learning_rate) # use Adam
         self.optimizer.setup(self.perturb)       
         # reset storages
         ## for the best (smallest perturbation) adversary with this c
@@ -278,9 +279,10 @@ class CarliniWagnerL2(object):
         """
         Back propagate losses and update adversarial images. 
         """
+        xp = self.xp
         loss = self.total_loss()
         # set initial gradient
-        loss.grad = xp.ones_like(loss, dtype=np.float32)
+        loss.grad = xp.ones_like(loss, dtype=xp.float32)
         self.perturb.cleargrads()
         loss.backward()
         # update perturbation
@@ -293,6 +295,7 @@ class CarliniWagnerL2(object):
         """
         With 'c' fixed, iteratively update the adversarial images.
         """
+        xp = self.xp
         prev_loss = xp.full_like(self.batch_targ, 1e20, dtype=xp.float32)
   
         for cnt_iter in range(self.num_iterations):
@@ -350,28 +353,29 @@ class CarliniWagnerL2(object):
         Update 'c' depending on whether adversarial images have been sucessfully generated.
         The next value of 'c' is determined by binary search.
         """
+        xp = self.xp
         tmp_c = self.c.reshape(1, -1) 
         
-        ## if succeeded, c is decreased
+        # if succeeded, c is decreased
         tmp_upper_bound = self.upper_bound.reshape(1, -1)
         new_upper_bound = xp.min(xp.concatenate([tmp_upper_bound, tmp_c], axis=0), axis=0)
         new_c = (self.lower_bound + new_upper_bound) / 2.0
         self.upper_bound[self.c_is_success] = new_upper_bound[self.c_is_success].copy()
-        ### if upper bound is near limit, skip update
+        ## if upper bound is near limit, skip update
         not_near_limit = (self.upper_bound < 1e9)
         can_update = xp.logical_and(self.c_is_success, not_near_limit)
         self.c[can_update] = new_c[can_update].copy()
         
-        ## if failed, c is increased
+        # if failed, c is increased
         tmp_lower_bound = self.lower_bound.reshape(1, -1)
         new_lower_bound = xp.max(xp.concatenate([tmp_lower_bound, tmp_c], axis=0), axis=0)        
         new_c = (new_lower_bound + self.upper_bound) / 2.0
         self.lower_bound[self.c_not_success] = new_lower_bound[self.c_not_success].copy()
-        ### if upper bound is near limit, multiplied by 10
+        ## if upper bound is near limit, multiplied by 10
         is_near_limit = xp.logical_not(not_near_limit)
         can_update = xp.logical_and(self.c_not_success, is_near_limit)
         self.c[can_update] = self.c[can_update].copy() * 10.0
-        ### otherwise perform binary search
+        ## otherwise perform binary search
         can_update = xp.logical_and(self.c_not_success, not_near_limit)
         self.c[can_update] = new_c[can_update].copy()
         
@@ -387,7 +391,7 @@ class CarliniWagnerL2(object):
         self.adv_c = np.append(self.adv_c, cuda.to_cpu(self.batch_best_c), axis=0)
 
     
-    ## utils #####################################################
+    ## utils ###############################
     
     def save_adv(self, save_dir):
         """

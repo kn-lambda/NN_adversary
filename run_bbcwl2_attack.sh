@@ -20,7 +20,7 @@ function execute() {
     log_file=${LOG_DIR}/${THIS}__${data_name}_${model_type}.log
     err_file=${LOG_DIR}/${THIS}__${data_name}_${model_type}.err
     
-    python generate_adversaries.py ${data_name} ${model_type} > ${log_file} 2> ${err_file}
+    python bbcwl2_attack.py ${data_name} ${model_type} > ${log_file} 2> ${err_file}
 
     if [ $? -gt 0 ]; then
         echo "${data_name} & ${model_type} ---- not completed -- $(date)"
