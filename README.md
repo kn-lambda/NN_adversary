@@ -15,6 +15,9 @@ fashion-mnist
 Carlini and Wagner's L2  
 Black Box version of Carlini and Wagner's L2
 
+## Defense
+distillation
+
 ## References
 "Towards Evaluating the Robustness of Neural Networks"  
 by Nicholas Carlini and David Wagner  
