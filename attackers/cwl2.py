@@ -339,7 +339,7 @@ class CarliniWagnerL2(object):
             
             # print progress
             #if (cnt_iter + 1)%(self.num_iterations//10) == 0:
-            #    print('        iteratins: {0}/{1}  ----  finished at {2}'.format(
+            #    print('iteratins: {0}/{1}  ----  finished at {2}'.format(
             #        cnt_iter + 1, self.num_iterations, 
             #        datetime.now().strftime("%Y/%m/%d %H:%M:%S")))
                 

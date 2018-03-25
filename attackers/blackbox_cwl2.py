@@ -23,7 +23,7 @@ class PixelAdam(object):
     Simplified implementation of the paper:
     
     "ZOO: Zeroth Order Optimization based Black-box Attacks to Deep Neural Networks without Training Substitute Models" 
-    by Pin-Yu Chen, Huan Zhang, Yash Sharma, Jinfeng Yi, Cho-Jui Hsieh
+    by Pin-Yu Chen, Huan Zhang, Yash Sharma, Jinfeng Yi, Cho-Jui Hsieh, 2017
     
     The following points are omitted:
     1. attack-space dimensional reduction
@@ -128,7 +128,7 @@ class PixelNewton(object):
     Simplified implementation of the paper:
     
     "ZOO: Zeroth Order Optimization based Black-box Attacks to Deep Neural Networks without Training Substitute Models" 
-    by Pin-Yu Chen*, Huan Zhang*, Yash Sharma, Jinfeng Yi, Cho-Jui Hsieh
+    by Pin-Yu Chen*, Huan Zhang*, Yash Sharma, Jinfeng Yi, Cho-Jui Hsieh, 2017
     
     The following points are omitted:
     1. attack-space dimensional reduction
@@ -140,7 +140,7 @@ class PixelNewton(object):
     "saddle-free Newton method" is proposed in the paper:
     
     "Identifying and attacking the saddle point problem in high-dimensional non-convex optimization"
-    by Yann Dauphin, Razvan Pascanu, Caglar Gulcehre, Kyunghyun Cho, Surya Ganguli, Yoshua Bengio
+    by Yann Dauphin, Razvan Pascanu, Caglar Gulcehre, Kyunghyun Cho, Surya Ganguli, Yoshua Bengio, 2014
     """
     
     def __init__(self, learning_rate=0.01):
@@ -494,10 +494,9 @@ class BlackBoxCWL2(object):
                 self.optimizer.init_state()
 
             # print progress
-            #cnt_iter += 1
-            #if cnt_iter%(self.num_iterations//10) == 0:
-            #    print('        iteratins: {0}/{1}  ---- finished at {2}'.format(
-            #        cnt_iter, self.num_iterations, 
+            #if (cnt_iter + 1)%(self.num_iterations//10) == 0:
+            #    print('iteratins: {0}/{1}  ---- finished at {2}'.format(
+            #        cnt_iter + 1, self.num_iterations, 
             #        datetime.now().strftime("%Y/%m/%d %H:%M:%S")))
                 
             
