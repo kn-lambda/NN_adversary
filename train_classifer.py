@@ -1,3 +1,24 @@
+"""
+This script trains the following classifer models.
+
+1. base model
+   normally trained model
+2. teacher model
+   used as a teacher model when distillation is performed
+3. distilled model
+   (trined by distilation of the above teacher model)
+   used as a defense for adversarial images
+   the original idea is in the paper:
+   "Distillation as a Defense to Adversarial Perturbations against Deep Neural Networks"
+   by Nicolas Papernot, Patrick McDaniel, Xi Wu, Somesh Jha, Ananthram Swami, 2015
+
+Data sets are assumed to be the followings.
+
+1. MNIST
+2. FASION MNIST
+3. CIFAR10
+"""
+
 import chainer
 from chainer import training, datasets, optimizers, iterators, reporter, serializers
 from chainer.training import extensions
@@ -179,7 +200,7 @@ if __name__ == '__main__':
     
     
     #####################################################################
-    ## make three models basic, teacher and distilled
+    ## make three models base, teacher and distilled
     #####################################################################
     
     ######################################################
@@ -277,5 +298,4 @@ if __name__ == '__main__':
     print('teacher   : {0:.4f}, {1:.4f}'.format(tea_train, tea_test))
     print('distilled : {0:.4f}, {1:.4f}'.format(dis_train, dis_test))
     print('=================================')
-
 

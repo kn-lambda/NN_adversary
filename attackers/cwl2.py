@@ -72,7 +72,7 @@ class CarliniWagnerL2(object):
         """
         
         if images.shape[0] != targets.shape[0]:
-            raise Exception('number of input images and labels does not unmatch')
+            raise Exception('number of input images and labels does not match')
         
         # check if the model is in cpu or gpu
         gen = model.params()
@@ -308,7 +308,6 @@ class CarliniWagnerL2(object):
             labs = xp.argmax(probs, axis=1).astype(xp.int32)
             probs = xp.max(probs, axis=1)
             
-            
             # check improvement, and update the best adversary if exists
             ## among this c
             is_improved = (l2sq < self.c_best_l2sq) # is smaller perturbation ?
@@ -329,7 +328,6 @@ class CarliniWagnerL2(object):
             self.batch_best_labs[is_best] = labs[is_best].copy()
             self.batch_best_probs[is_best] = probs[is_best].copy()
             self.batch_best_c[is_best] = self.c[is_best].copy()
-            
 
             # if imporovement of all adversaries seems to stop, abort this search
             if self.early_abort and (cnt_iter + 1)%(self.num_iterations//10) == 0:
@@ -339,12 +337,10 @@ class CarliniWagnerL2(object):
                     break
                 prev_loss = cur_loss
             
-
             # print progress
-            #cnt_iter += 1
-            #if cnt_iter%(self.num_iterations//10) == 0:
-            #    print('        iteratins: {0}/{1}  ---- finished at {2}'.format(
-            #        cnt_iter, self.num_iterations, 
+            #if (cnt_iter + 1)%(self.num_iterations//10) == 0:
+            #    print('        iteratins: {0}/{1}  ----  finished at {2}'.format(
+            #        cnt_iter + 1, self.num_iterations, 
             #        datetime.now().strftime("%Y/%m/%d %H:%M:%S")))
                 
             

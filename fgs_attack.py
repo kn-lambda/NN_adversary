@@ -1,5 +1,5 @@
 """
-Black Box version of Carlini & Wagner's L2 attack
+(Iterative) Fast Gradient Sign attack
 """
 
 import chainer
@@ -24,7 +24,7 @@ if uses_device >= 0:
 from modules.data import Data
 from modules.classifer import layer_params, ClassiferNN
 from modules.utils import get_predictions
-from attackers.blackbox_cwl2 import BlackBoxCWL2
+from attackers.fast_gradient_sign import FastGradientSign
 
 
 ###########################################################
@@ -51,8 +51,8 @@ print("==================================")
 
 # load data
 data = Data(data_name)
-data_images = data.test_image[:100]
-data_labels = data.test_label[:100]
+data_images = data.test_image[:1000]
+data_labels = data.test_label[:1000]
 
 # load trained model
 model = ClassiferNN(layer_params[data_name], T=1.0)
@@ -116,7 +116,7 @@ for org_label in all_labels:
         print("target label   : {0}".format(targ_label))
         print("----------------------------")
 
-        att = BlackBoxCWL2(model, uses_images, uses_targets, num_iterations=1000, confidence=10, num_sampling=128, num_c_search=5)
+        att = FastGradientSign(model, uses_images, uses_targets, num_iterations=5000)
         # run
         n_data, n_success, ratio_success, n_failure, ratio_failure, mean_l2sq = att.run()
 
@@ -127,7 +127,7 @@ for org_label in all_labels:
                                mean_l2sq))
 
         # saave images
-        img_dir = 'images/bbcwl2/{0}/{1}/org={2}'.format(data_name, model_type, org_label)
+        img_dir = 'images/fgs/{0}/{1}/org={2}'.format(data_name, model_type, org_label)
         # for adversaries
         adv_dir = os.path.join(img_dir, 'adv={}'.format(targ_label))
         att.save_adv(adv_dir)
@@ -141,7 +141,7 @@ for org_label in all_labels:
 # save report
 report_dir = 'success_rate'
 os.makedirs(report_dir, exist_ok=True)
-report_file = 'bbcwl2__{0}_{1}.tsv'.format(data_name, model_type)
+report_file = 'fgs__{0}_{1}.tsv'.format(data_name, model_type)
 report_path = os.path.join(report_dir, report_file)
 
 contents = '\n'.join(success_report)

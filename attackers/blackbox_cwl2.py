@@ -296,10 +296,16 @@ class BlackBoxCWL2(object):
         return F.batch_l2_norm_squared(diff)
     
     
-    def confidence_loss(self, adv_img_arr, targ_arr):
+    def confidence_loss(self, adv_img_arr, targ_arr, black_box=True):
         xp = self.xp
-        out = self.model(adv_img_arr) # output of the model before softmax
+        # in black-box cases, 
+        # it seems natural that before-softmax values are inaccesible 
+        if black_box:
+            out = F.log(self.model.predict_proba(adv_img_arr) + 1e-30)
+        else:
+            out = self.model(adv_img_arr) # output of the model before softmax
         one_hot_targ = self._one_hot(targ_arr)
+        
         inf = 1e20
         # calculate differnce of outputs between 'max + confidence' and 'target' 
         out_max = F.max(out + one_hot_targ * (-inf), axis=1)
@@ -454,7 +460,6 @@ class BlackBoxCWL2(object):
             lab = xp.argmax(probs, axis=1).astype(xp.int32)
             prob = xp.max(probs, axis=1)
             
-            
             # check improvement, and update the best adversary if exists
             ## among this c
             is_improved = (l2sq < self.c_best_l2sq) # is smaller perturbation ?
@@ -475,7 +480,6 @@ class BlackBoxCWL2(object):
             self.cur_best_lab[is_best] = lab[is_best].copy()
             self.cur_best_prob[is_best] = prob[is_best].copy()
             self.cur_best_c[is_best] = self.c[is_best].copy()
-            
 
             # if imporovement of the adversary seems to stop, abort this search
             if self.early_abort and (cnt_iter + 1)%(self.num_iterations//10) == 0:
