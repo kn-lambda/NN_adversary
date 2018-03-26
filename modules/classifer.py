@@ -73,8 +73,8 @@ class ClassiferNN(chainer.Chain):
     
     # loss as a soft labeling cross entropy used when distillation
     def soft_cross_entropy_loss(self, x, p):
-        # in the argment of log(), add +1 to care numerical instability
-        loss = -F.mean(F.sum(p * F.log(1 + self.predict_proba(x)), axis=1))
+        # in the argment of log(), add small value to care numerical instability
+        loss = -F.mean(F.sum(p * F.log(1e-30 + self.predict_proba(x)), axis=1))
         # reporting loss
         reporter.report({'loss':loss}, self)
         return loss

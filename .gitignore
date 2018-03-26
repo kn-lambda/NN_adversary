@@ -10,3 +10,4 @@ download/
 .ipynb_checkpoints/
 *.ipynb
 success_rate/
+test*
